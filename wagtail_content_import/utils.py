@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from wagtail.admin.views.pages.create import CreateView
 from wagtail.admin.views.pages.edit import EditView
 
@@ -20,11 +21,19 @@ def create_page_from_import(request, parent_page, page_class, parsed_doc):
     page = page_class.create_from_import(parsed_doc, request.user)
 
     class CustomCreateView(CreateView):
+        def dispatch(self, *args, **kwargs):
+            page_perms = self.page.permissions_for_user(self.request.user)
+            if not page_perms.can_import():
+                raise PermissionDenied
+            return super().dispatch(*args, **kwargs)
+
         def post(self, request):
             self.page = page
             return self.get(request)
 
-    return CustomCreateView.as_view()(request, *page_class._meta.label_lower.split("."), parent_page.pk)
+    return CustomCreateView.as_view()(
+        request, *page_class._meta.label_lower.split("."), parent_page.pk
+    )
 
 
 def update_page_from_import(request, page, parsed_doc):
@@ -34,6 +43,12 @@ def update_page_from_import(request, page, parsed_doc):
     page.update_from_import(parsed_doc, request.user)
 
     class CustomEditView(EditView):
+        def dispatch(self, *args, **kwargs):
+            response = super().dispatch(*args, **kwargs)
+            if not self.page_perms.can_import():
+                raise PermissionDenied
+            return response
+
         def post(self, request, *args, **kwargs):
             self.page = page
             return self.get(request, *args, **kwargs)

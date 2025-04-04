@@ -1,8 +1,10 @@
 import re
+
 from django import template
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-from wagtail import hooks, VERSION as WAGTAIL_VERSION
+from wagtail import VERSION as WAGTAIL_VERSION
+from wagtail import hooks
 from wagtail.admin.action_menu import ActionMenuItem
 
 register = template.Library()
@@ -27,21 +29,28 @@ class ImportMenuItem(ActionMenuItem):
     def __init__(self, picker):
         super().__init__()
         self.label = "Import from %s" % picker.verbose_name
-        self.icon_name = re.sub(r'^icon-', '', picker.icon)
+        self.icon_name = re.sub(r"^icon-", "", picker.icon)
         self.name = picker.name
+
+    def is_shown(self, context):
+        perms_tester = self.get_user_page_permissions_tester(context)
+        return not context["locked_for_user"] and perms_tester.can_import()
 
     def get_context_data(self, parent_context):
         context = super().get_context_data(parent_context)
-        context["show_dialog"] = (parent_context["view"] != "create")
+        context["show_dialog"] = parent_context["view"] != "create"
         return context
 
     def get_url(self, parent_context):
         if parent_context["view"] == "create":
-            return reverse("wagtailadmin_pages:add", args=[
-                parent_context["content_type"].app_label,
-                parent_context["content_type"].model,
-                parent_context["parent_page"].id
-            ])
+            return reverse(
+                "wagtailadmin_pages:add",
+                args=[
+                    parent_context["content_type"].app_label,
+                    parent_context["content_type"].model,
+                    parent_context["parent_page"].id,
+                ],
+            )
         else:
             return reverse("wagtailadmin_pages:edit", args=[parent_context["page"].id])
 
