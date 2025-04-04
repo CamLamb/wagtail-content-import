@@ -1,6 +1,7 @@
 # Basic Usage
 
 1. To enable import for a Page model, it should inherit from `ContentImportMixin`
+(any `Meta` classes on the page model or it's children will need to inherit from the `ContentImportMixin.Meta` class.)
 (`wagtail_content_import.models.ContentImportMixin`). By default, content will be imported into into a StreamField called `body`
 (see [Changing Import Fields](changing_import_fields.md) for how to change this).
 
